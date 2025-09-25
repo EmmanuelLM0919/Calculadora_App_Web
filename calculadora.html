@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Calculadora</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --accent: #06b6d4;
+            --btn: #1f2937;
+            --text: #e6eef8;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #051025 0%, var(--bg) 100%);
+            font-family: Inter, system-ui, "Segoe UI", Roboto, Arial;
+            color: var(--text);
+            padding: 2rem;
+        }
+
+        .calc {
+            width: 320px;
+            background: linear-gradient(180deg, #071025 0%, var(--panel) 100%);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.6);
+            padding: 18px;
+        }
+
+        .screen {
+            height: 60px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: right;
+            overflow: hidden;
+            word-wrap: break-word;
+        }
+
+        .screen .expr {
+            font-size: 14px;
+            opacity: 0.7;
+            color: #bcd7e6;
+        }
+
+        .screen .result {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .keys {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            height: 52px;
+            border-radius: 10px;
+            border: 0;
+            background: var(--btn);
+            color: var(--text);
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(2, 6, 23, 0.4);
+            transition: transform .06s ease, box-shadow .06s;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button.op {
+            background: linear-gradient(180deg, #0ea5a4, #02848a);
+        }
+
+        button.equal {
+            grid-column: span 2;
+            background: linear-gradient(180deg, #f59e0b, #d97706);
+        }
+
+        button.clear {
+            background: linear-gradient(180deg, #ef4444, #b91c1c);
+        }
+
+        .small {
+            font-size: 14px;
+            height: 44px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 10px;
+            opacity: 0.6;
+            font-size: 13px;
+        }
+
+        @media (max-width:360px) {
+            .calc {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="calc" role="application" aria-label="Calculadora">
+        <div class="screen" aria-live="polite">
+            <div class="expr" id="expression" aria-hidden="true"></div>
+            <div class="result" id="result">0</div>
+        </div>
+
+        <div class="keys" id="keys">
+            <button class="clear small" data-action="clear">C</button>
+            <button class="small" data-action="back">⌫</button>
+            <button class="small" data-action="percent">%</button>
+            <button class="op" data-value="/">÷</button>
+
+            <button data-value="7">7</button>
+            <button data-value="8">8</button>
+            <button data-value="9">9</button>
+            <button class="op" data-value="*">×</button>
+
+            <button data-value="4">4</button>
+            <button data-value="5">5</button>
+            <button data-value="6">6</button>
+            <button class="op" data-value="-">−</button>
+
+            <button data-value="1">1</button>
+            <button data-value="2">2</button>
+            <button data-value="3">3</button>
+            <button class="op" data-value="+">+</button>
+
+            <button data-value="0">0</button>
+            <button data-value=".">.</button>
+            <button class="equal" data-action="calculate">=</button>
+            <button class="small" data-action="neg">±</button>
+        </div>
+
+        <footer>Calculadora (HTML + JavaScript). Soporta teclado: números, + - * /, Enter (=), Backspace (⌫)</footer>
+    </div>
+
+    <script>
+        // Variables de estado
+        const exprEl = document.getElementById('expression');
+        const resultEl = document.getElementById('result');
+        let expression = ''; // expresión en texto
+        let lastResult = null;
+
+        // Actualiza pantalla
+        function updateScreen() {
+            exprEl.textContent = expression;
+            resultEl.textContent = expression === '' ? '0' : expression;
+        }
+
+        // Añade un valor (número o punto u operador)
+        function appendValue(val) {
+            // Evitar dos puntos seguidos en el mismo número:
+            if (val === '.') {
+                // extraer el último número tras el último operador
+                const lastNum = expression.split(/[\+\-\*\/%]/).pop();
+                if (lastNum.includes('.')) return;
+                if (lastNum === '') expression += '0'; // ".5" => "0.5"
+            }
+            // Evitar operadores al inicio (salvo '-')
+            if (/[\+\*\/%]/.test(val) && expression === '') return;
+            // Evitar operadores dobles (reemplazar)
+            if (/[\+\-\*\/%]/.test(val) && /[\+\-\*\/%]$/.test(expression)) {
+                // permite cambiar operador final (ej: 5 + -> 5 -)
+                expression = expression.slice(0, -1) + val;
+            } else {
+                expression += val;
+            }
+            updateScreen();
+        }
+
+        // Borra todo
+        function clearAll() {
+            expression = '';
+            lastResult = null;
+            updateScreen();
+        }
+
+        // Backspace
+        function backspace() {
+            if (expression.length === 0) return;
+            expression = expression.slice(0, -1);
+            updateScreen();
+        }
+
+        // Negar número actual (±)
+        function negate() {
+            // encuentra el último número
+            const parts = expression.split(/([\+\-\*\/%])/);
+            if (parts.length === 0) return;
+            const last = parts.pop();
+            if (last === '') return;
+            const before = parts.join('');
+            if (last.startsWith('-')) {
+                expression = before + last.slice(1);
+            } else {
+                expression = before + '(' + (-1 * parseFloat(last)) + ')';
+            }
+            updateScreen();
+        }
+
+        // Porcentaje: transforma último número en /100
+        function percent() {
+            const parts = expression.split(/([\+\-\*\/%])/);
+            const last = parts.pop();
+            if (!last) return;
+            const before = parts.join('');
+            const num = parseFloat(last);
+            if (Number.isNaN(num)) return;
+            expression = before + (num / 100);
+            updateScreen();
+        }
+
+        // Calcula la expresión de forma segura
+        function calculate() {
+            if (expression.trim() === '') return;
+            try {
+                // Seguridad: permitir solo caracteres válidos
+                if (!/^[0-9+\-*/%().\s]+$/.test(expression)) {
+                    throw new Error('Expresión inválida');
+                }
+                // Reemplazar % si quedan (aunque manejamos antes)
+                const safeExpr = expression.replace(/%/g, '/100');
+                // Evaluación: usando Function para evitar algunos riesgos de eval directo
+                // Nota: esto sigue siendo para uso en cliente/local. No ejecutar código arbitrario del usuario en servidor.
+                const fn = new Function('return (' + safeExpr + ')');
+                const res = fn();
+                lastResult = res;
+                expression = String(res);
+                updateScreen();
+            } catch (e) {
+                resultEl.textContent = 'Error';
+                console.error('Error cálculo:', e);
+            }
+        }
+
+        // Manejo de clicks en botones
+        document.getElementById('keys').addEventListener('click', (ev) => {
+            const btn = ev.target.closest('button');
+            if (!btn) return;
+            const val = btn.getAttribute('data-value');
+            const action = btn.getAttribute('data-action');
+
+            if (val !== null) appendValue(val);
+            else if (action === 'clear') clearAll();
+            else if (action === 'back') backspace();
+            else if (action === 'neg') negate();
+            else if (action === 'percent') percent();
+            else if (action === 'calculate') calculate();
+        });
+
+        // Soporte de teclado
+        window.addEventListener('keydown', (e) => {
+            if ((e.key >= '0' && e.key <= '9') || ['+', '-', '*', '/', '.', '(', ')'].includes(e.key)) {
+                appendValue(e.key);
+                e.preventDefault();
+            } else if (e.key === 'Enter' || e.key === '=') {
+                calculate();
+                e.preventDefault();
+            } else if (e.key === 'Backspace') {
+                backspace();
+                e.preventDefault();
+            } else if (e.key.toLowerCase() === 'c') {
+                clearAll();
+                e.preventDefault();
+            }
+        });
+
+        // Inicializar
+        updateScreen();
+    </script>
+</body>
+
+</html>
